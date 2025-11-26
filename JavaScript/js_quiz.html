@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .quiz-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            color: #1e3c72;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .progress {
+            background: #e0e0e0;
+            height: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            height: 100%;
+            transition: width 0.3s;
+        }
+        .question {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 25px;
+            color: #333;
+        }
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .option {
+            padding: 15px 20px;
+            background: #f5f5f5;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+        }
+        .option:hover {
+            background: #e8f0fe;
+            border-color: #2a5298;
+            transform: translateX(5px);
+        }
+        .option.correct {
+            background: #4caf50;
+            color: white;
+            border-color: #4caf50;
+        }
+        .option.wrong {
+            background: #f44336;
+            color: white;
+            border-color: #f44336;
+        }
+        .option.disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .next-btn {
+            background: #2a5298;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            display: none;
+            transition: background 0.3s;
+        }
+        .next-btn:hover {
+            background: #1e3c72;
+        }
+        .result {
+            text-align: center;
+            display: none;
+        }
+        .result h2 {
+            color: #1e3c72;
+            margin-bottom: 20px;
+            font-size: 32px;
+        }
+        .score {
+            font-size: 48px;
+            font-weight: bold;
+            color: #2a5298;
+            margin: 20px 0;
+        }
+        .restart-btn {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        .restart-btn:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <h1>🧠 JavaScript Quiz</h1>
+        <div id="quiz">
+            <div class="progress">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="question" id="question"></div>
+            <div class="options" id="options"></div>
+            <button class="next-btn" id="nextBtn">Next Question</button>
+        </div>
+        <div class="result" id="result">
+            <h2>Quiz Complete! 🎉</h2>
+            <div class="score" id="score"></div>
+            <button class="restart-btn" id="restartBtn">Try Again</button>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                question: "What does 'DOM' stand for?",
+                options: ["Document Object Model", "Data Object Model", "Digital Object Management", "Document Oriented Model"],
+                correct: 0
+            },
+            {
+                question: "Which method is used to add an element to the end of an array?",
+                options: ["push()", "append()", "add()", "insert()"],
+                correct: 0
+            },
+            {
+                question: "What is the correct way to declare a variable in modern JavaScript?",
+                options: ["var x = 5", "let x = 5", "const x = 5", "Both let and const"],
+                correct: 3
+            },
+            {
+                question: "Which symbol is used for single-line comments in JavaScript?",
+                options: ["//", "/* */", "#", "<!--"],
+                correct: 0
+            },
+            {
+                question: "What will 'typeof null' return?",
+                options: ["'null'", "'undefined'", "'object'", "'number'"],
+                correct: 2
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+
+        const questionEl = document.getElementById('question');
+        const optionsEl = document.getElementById('options');
+        const nextBtn = document.getElementById('nextBtn');
+        const progressBar = document.getElementById('progressBar');
+        const quizEl = document.getElementById('quiz');
+        const resultEl = document.getElementById('result');
+        const scoreEl = document.getElementById('score');
+        const restartBtn = document.getElementById('restartBtn');
+
+        function loadQuestion() {
+            const q = questions[currentQuestion];
+            questionEl.textContent = q.question;
+            optionsEl.innerHTML = '';
+            
+            q.options.forEach((option, index) => {
+                const optionBtn = document.createElement('div');
+                optionBtn.className = 'option';
+                optionBtn.textContent = option;
+                optionBtn.onclick = () => selectOption(index);
+                optionsEl.appendChild(optionBtn);
+            });
+
+            updateProgress();
+            nextBtn.style.display = 'none';
+        }
+
+        function selectOption(selected) {
+            const q = questions[currentQuestion];
+            const options = document.querySelectorAll('.option');
+            
+            options.forEach((option, index) => {
+                option.classList.add('disabled');
+                if (index === q.correct) {
+                    option.classList.add('correct');
+                }
+                if (index === selected && selected !== q.correct) {
+                    option.classList.add('wrong');
+                }
+            });
+
+            if (selected === q.correct) {
+                score++;
+            }
+
+            nextBtn.style.display = 'block';
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            
+            if (currentQuestion < questions.length) {
+                loadQuestion();
+            } else {
+                showResult();
+            }
+        }
+
+        function updateProgress() {
+            const progress = ((currentQuestion + 1) / questions.length) * 100;
+            progressBar.style.width = progress + '%';
+        }
+
+        function showResult() {
+            quizEl.style.display = 'none';
+            resultEl.style.display = 'block';
+            scoreEl.textContent = `${score} / ${questions.length}`;
+        }
+
+        function restartQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            quizEl.style.display = 'block';
+            resultEl.style.display = 'none';
+            loadQuestion();
+        }
+
+        nextBtn.addEventListener('click', nextQuestion);
+        restartBtn.addEventListener('click', restartQuiz);
+
+        loadQuestion();
+    </script>
+</body>
+</html>
